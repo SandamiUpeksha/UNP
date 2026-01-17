@@ -374,10 +374,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Color iconColor,
   ) {
     return GestureDetector(
-      onTap:
-          () => ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Opening $title...'))),
+      onTap: () => _showSnack('Opening $title...'),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -412,6 +409,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
@@ -616,9 +626,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     String? pUid = snap.data()?['partnerUid'] as String?;
     if (pUid == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No partner linked to send emergency')),
-        );
+        _showSnack('No partner linked to send emergency');
       }
       Navigator.pop(context);
       return;
@@ -633,9 +641,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Emergency notification sent to partner'),
-          backgroundColor: Color(0xFF8B7FD8),
+        SnackBar(
+          content: const Text('Emergency notification sent to partner'),
+          backgroundColor: const Color(0xFF8B7FD8),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
