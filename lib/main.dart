@@ -71,6 +71,7 @@ class AuthScreen extends StatefulWidget {
 class _AuthScreenState extends State<AuthScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
   final _partnerEmailController = TextEditingController();
   bool _isRegister = false;
   bool _loading = false;
@@ -94,6 +95,11 @@ class _AuthScreenState extends State<AuthScreen> {
               obscureText: true,
             ),
             if (_isRegister) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
               const SizedBox(height: 8),
               TextField(
                 controller: _partnerEmailController,
@@ -132,10 +138,13 @@ class _AuthScreenState extends State<AuthScreen> {
           email: email,
           password: pass,
         );
-        final uid = cred.user!.uid;
+        final user = cred.user!;
+        await user.updateDisplayName(_nameController.text.trim());
+        final uid = user.uid;
         final userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
         await userDoc.set({
           'email': email,
+          'name': _nameController.text.trim(),
           'partnerEmail':
               _partnerEmailController.text.trim().isEmpty
                   ? null
@@ -175,10 +184,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   StreamSubscription? _myMoodSub;
   StreamSubscription? _userDocSub;
   StreamSubscription? _partnerMoodSub;
+  late String userName;
 
   @override
   void initState() {
     super.initState();
+    userName = widget.user.displayName ?? widget.user.email ?? 'User';
     _db = FirebaseFirestore.instance;
     _listenToProfileAndMoods();
   }
@@ -303,6 +314,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            'Hello, $userName',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -327,21 +347,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, color: const Color(0xFF8B7FD8)),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                    },
-                  ),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'logout') {
+                    FirebaseAuth.instance.signOut();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'logout', child: Text('Logout')),
                 ],
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, color: const Color(0xFF8B7FD8)),
+                ),
               ),
             ],
           ),
