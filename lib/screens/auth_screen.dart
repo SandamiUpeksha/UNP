@@ -279,7 +279,7 @@ class _AuthScreenState extends State<AuthScreen> {
       style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF8B7FD8)),
+        prefixIcon: Icon(icon, color: const Color.fromRGBO(139, 127, 216, 1)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),

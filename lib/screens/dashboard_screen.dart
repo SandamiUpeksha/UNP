@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../constants/app_constants.dart';
+import 'alerts_screen.dart';
+import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final User user;
@@ -111,50 +112,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF8B7FD8),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Color.fromARGB(255, 251, 248, 255),
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      _buildMoodSection(),
-                      const SizedBox(height: 24),
-                      _buildFeatureGrid(),
-                      const SizedBox(height: 100),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showEmergencyDialog,
-        backgroundColor: const Color(0xFF8B7FD8),
-        child: const Icon(Icons.favorite, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      body: SafeArea(child: _buildBody()),
+      floatingActionButton:
+          _selectedIndex == 0
+              ? FloatingActionButton(
+                onPressed: _showEmergencyDialog,
+                backgroundColor: const Color(0xFF8B7FD8),
+                child: const Icon(Icons.favorite, color: Colors.white),
+              )
+              : null,
+      floatingActionButtonLocation:
+          _selectedIndex == 0
+              ? FloatingActionButtonLocation.centerDocked
+              : null,
       bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildBody() {
     final now = DateTime.now();
     final dayName = DateFormat('EEEE').format(now);
     final monthDay = DateFormat('MMMM d').format(now);
 
+    late final String title;
+    late final Widget content;
+
+    switch (_selectedIndex) {
+      case 0:
+        title = dayName;
+        content = _buildHomeContent();
+        break;
+      case 1:
+        title = 'Timeline';
+        content = _buildPlaceholder('Timeline');
+        break;
+      case 2:
+        title = 'Alerts';
+        content = AlertsScreen(user: widget.user);
+        break;
+      case 3:
+        title = 'Settings';
+        content = SettingsScreen(user: widget.user);
+        break;
+      default:
+        title = dayName;
+        content = _buildHomeContent();
+    }
+
+    return Column(
+      children: [
+        _buildHeader(title: title, subtitle: monthDay),
+        Expanded(child: _buildPageContainer(content)),
+      ],
+    );
+  }
+
+  Widget _buildHomeContent() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          _buildMoodSection(),
+          const SizedBox(height: 24),
+          _buildFeatureGrid(),
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(String title) {
+    return Container(
+      color: const Color(0xFFF3E8FF),
+      child: Center(
+        child: Text(
+          '$title (coming soon)',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader({required String title, required String subtitle}) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -176,7 +215,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    dayName,
+                    title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 28,
@@ -184,7 +223,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   Text(
-                    monthDay.toUpperCase(),
+                    subtitle.toUpperCase(),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.85),
                       fontSize: 12,
@@ -206,6 +245,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPageContainer(Widget child) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF3E8FF),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+      ),
+      child: child,
     );
   }
 
@@ -420,9 +472,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         content: Text(message),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 90),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -445,13 +495,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: Colors.white,
         elevation: 0,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(Icons.home, 'Home', 0),
               _buildNavItem(Icons.timeline, 'Timeline', 1),
-              const SizedBox(width: 40),
+              const SizedBox(width: 60),
               _buildNavItem(Icons.notifications, 'Alerts', 2),
               _buildNavItem(Icons.settings, 'Settings', 3),
             ],
