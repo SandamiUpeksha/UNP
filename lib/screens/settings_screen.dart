@@ -12,13 +12,17 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _partnerNameController = TextEditingController();
   final _partnerEmailController = TextEditingController();
   bool _darkMode = false;
   bool _notificationsEnabled = true;
   bool _loading = false;
   bool _loaded = false;
+  bool _editingProfile = false;
   String _partnerStatus = 'Not linked';
+  String _savedName = '';
+  String _savedEmail = '';
 
   late final FirebaseFirestore _db;
 
@@ -39,7 +43,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       if (!_loaded) {
-        _nameController.text = (data['name'] as String?) ?? '';
+        _savedName = (data['name'] as String?) ?? '';
+        _savedEmail =
+            (data['email'] as String?) ?? (widget.user.email ?? '');
+        _nameController.text = _savedName;
+        _emailController.text = _savedEmail;
         _partnerNameController.text = (data['partnerName'] as String?) ?? '';
         _partnerEmailController.text = (data['partnerEmail'] as String?) ?? '';
         _loaded = true;
@@ -58,6 +66,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _partnerNameController.dispose();
     _partnerEmailController.dispose();
     super.dispose();
@@ -101,41 +110,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return _buildCard(
       child: Column(
         children: [
-          _buildTextField(label: 'Name', controller: _nameController),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Profile Details',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+              ),
+              TextButton.icon(
+                onPressed: _loading ? null : _toggleEditProfile,
+                icon: Icon(
+                  _editingProfile ? Icons.close : Icons.edit,
+                  size: 18,
+                ),
+                label: Text(_editingProfile ? 'Cancel' : 'Edit details'),
+              ),
+            ],
+          ),
           const SizedBox(height: 12),
           _buildTextField(
-            label: 'Email (display)',
-            initialValue: widget.user.email ?? '',
+            label: 'Name',
+            controller: _nameController,
+            readOnly: !_editingProfile,
+          ),
+          const SizedBox(height: 12),
+          _buildTextField(
+            label: 'Email',
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            readOnly: !_editingProfile,
+          ),
+          const SizedBox(height: 12),
+          _buildTextField(
+            label: 'User ID',
+            initialValue: widget.user.uid,
             readOnly: true,
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: _loading ? null : _saveProfile,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8B7FD8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          if (_editingProfile) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _loading ? null : _saveProfile,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B7FD8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              child:
-                  _loading
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+                child:
+                    _loading
+                        ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                        : const Text(
+                          'Save Profile',
+                          style: TextStyle(color: Colors.white),
                         ),
-                      )
-                      : const Text(
-                        'Save Profile',
-                        style: TextStyle(color: Colors.white),
-                      ),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -290,16 +330,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final uid = widget.user.uid;
       final name = _nameController.text.trim();
+      final email = _emailController.text.trim();
       final partnerName = _partnerNameController.text.trim();
       final partnerEmail = _partnerEmailController.text.trim();
 
+      if (email.isEmpty) {
+        _showSnack('Email cannot be empty');
+        return;
+      }
+
+      if (email != _savedEmail) {
+        await widget.user.updateEmail(email);
+      }
+
       await _db.collection('users').doc(uid).set({
         'name': name,
+        'email': email,
         'partnerName': partnerName,
         'partnerEmail': partnerEmail,
       }, SetOptions(merge: true));
 
       await widget.user.updateDisplayName(name);
+
+      _savedName = name;
+      _savedEmail = email;
+      _editingProfile = false;
 
       setState(() {
         _partnerStatus =
@@ -314,6 +369,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _toggleEditProfile() {
+    setState(() {
+      if (_editingProfile) {
+        _nameController.text = _savedName;
+        _emailController.text = _savedEmail;
+      }
+      _editingProfile = !_editingProfile;
+    });
   }
 
   Future<void> _updatePreferences({
