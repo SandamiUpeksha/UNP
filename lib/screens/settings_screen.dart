@@ -166,8 +166,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 10),
             _buildProfileInfoRow(
-              icon: Icons.fingerprint,
-              value: widget.user.uid,
+              icon: Icons.badge_outlined,
+              value:
+                  widget.user.uid.isNotEmpty ? widget.user.uid : 'No user ID',
             ),
           ] else ...[
             _buildTextField(
@@ -226,6 +227,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildPartnerCard() {
     final isLinked = _partnerUid != null && _partnerUid!.isNotEmpty;
+    final canLink = widget.user.uid.isNotEmpty;
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +275,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               width: double.infinity,
               height: 48,
               child: OutlinedButton.icon(
-                onPressed: _showLinkPartnerDialog,
+                onPressed: canLink ? _showLinkPartnerDialog : null,
                 icon: const Icon(Icons.link),
                 label: const Text('Link Partner'),
                 style: OutlinedButton.styleFrom(
