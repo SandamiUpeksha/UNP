@@ -232,14 +232,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ],
               ),
-              InkWell(
-                onTap: _confirmLogout,
-                borderRadius: BorderRadius.circular(24),
-                child: CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.logout, color: const Color(0xFF8B7FD8)),
-                ),
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: const Color(0xFF8B7FD8)),
               ),
             ],
           ),
