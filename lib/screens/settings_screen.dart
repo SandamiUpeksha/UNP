@@ -164,6 +164,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: Icons.phone_outlined,
               value: phone.isNotEmpty ? phone : 'No phone number',
             ),
+            const SizedBox(height: 10),
+            _buildProfileInfoRow(
+              icon: Icons.fingerprint,
+              value: widget.user.uid,
+            ),
           ] else ...[
             _buildTextField(
               label: 'Name',
