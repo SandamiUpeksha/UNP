@@ -20,7 +20,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _loading = false;
   bool _loaded = false;
   bool _editingProfile = false;
-  String _partnerStatus = 'Not linked';
+  String? _partnerUid;
+  String _partnerDisplayName = '';
   String _savedName = '';
   String _savedEmail = '';
 
@@ -44,8 +45,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       if (!_loaded) {
         _savedName = (data['name'] as String?) ?? '';
-        _savedEmail =
-            (data['email'] as String?) ?? (widget.user.email ?? '');
+        _savedEmail = (data['email'] as String?) ?? (widget.user.email ?? '');
         _nameController.text = _savedName;
         _emailController.text = _savedEmail;
         _partnerNameController.text = (data['partnerName'] as String?) ?? '';
@@ -55,11 +55,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _darkMode = (data['prefTheme'] as String?) == 'dark';
       _notificationsEnabled = (data['prefNotifications'] as bool?) ?? true;
       final partnerName = (data['partnerName'] as String?) ?? '';
-      final partnerUid = data['partnerUid'] as String?;
-      _partnerStatus =
-          partnerUid == null || partnerUid.isEmpty
-              ? 'Not linked'
-              : 'Linked with $partnerName';
+      _partnerUid = data['partnerUid'] as String?;
+      _partnerDisplayName = partnerName;
     });
   }
 
@@ -107,6 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildProfileCard() {
+    final phone = widget.user.phoneNumber ?? '';
     return _buildCard(
       child: Column(
         children: [
@@ -124,28 +122,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   size: 18,
                 ),
                 label: Text(_editingProfile ? 'Cancel' : 'Edit details'),
+                style: TextButton.styleFrom(
+                  backgroundColor:
+                      _editingProfile
+                          ? const Color(0xFFFFEAEA)
+                          : const Color(0xFFEDEBFA),
+                  foregroundColor:
+                      _editingProfile
+                          ? const Color(0xFFC62828)
+                          : const Color(0xFF5E35B1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildTextField(
-            label: 'Name',
-            controller: _nameController,
-            readOnly: !_editingProfile,
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            label: 'Email',
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            readOnly: !_editingProfile,
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            label: 'User ID',
-            initialValue: widget.user.uid,
-            readOnly: true,
-          ),
+          if (!_editingProfile) ...[
+            _buildProfileInfoRow(
+              icon: Icons.person_outline,
+              value:
+                  _nameController.text.isNotEmpty
+                      ? _nameController.text
+                      : 'No name set',
+            ),
+            const SizedBox(height: 10),
+            _buildProfileInfoRow(
+              icon: Icons.email_outlined,
+              value:
+                  _emailController.text.isNotEmpty
+                      ? _emailController.text
+                      : 'No email set',
+            ),
+            const SizedBox(height: 10),
+            _buildProfileInfoRow(
+              icon: Icons.phone_outlined,
+              value: phone.isNotEmpty ? phone : 'No phone number',
+            ),
+          ] else ...[
+            _buildTextField(
+              label: 'Name',
+              controller: _nameController,
+              readOnly: false,
+            ),
+            const SizedBox(height: 12),
+            _buildTextField(
+              label: 'Email',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              readOnly: false,
+            ),
+            const SizedBox(height: 12),
+            _buildTextField(
+              label: 'User ID',
+              initialValue: widget.user.uid,
+              readOnly: true,
+            ),
+          ],
           if (_editingProfile) ...[
             const SizedBox(height: 16),
             SizedBox(
@@ -182,45 +220,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildPartnerCard() {
+    final isLinked = _partnerUid != null && _partnerUid!.isNotEmpty;
     return _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Partner Status',
-            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          Row(
+            children: [
+              _buildPartnerStatusBadge(isLinked: isLinked),
+              const SizedBox(width: 12),
+              Text(
+                isLinked ? 'Linked' : 'Not Linked',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            _partnerStatus,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            label: 'Partner Name',
-            controller: _partnerNameController,
-          ),
-          const SizedBox(height: 12),
-          _buildTextField(
-            label: 'Partner Email',
-            controller: _partnerEmailController,
-            keyboardType: TextInputType.emailAddress,
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: _showLinkPartnerDialog,
-              icon: const Icon(Icons.link),
-              label: const Text('Link Partner'),
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          if (isLinked) ...[
+            const SizedBox(height: 12),
+            Text(
+              _partnerDisplayName.isNotEmpty
+                  ? _partnerDisplayName
+                  : 'Partner linked',
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _confirmUnlinkPartner,
+                icon: const Icon(Icons.link_off),
+                label: const Text('Unlink Partner'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFC62828),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-          ),
+          ] else ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _showLinkPartnerDialog,
+                icon: const Icon(Icons.link),
+                label: const Text('Link Partner'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -325,14 +383,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildProfileInfoRow({required IconData icon, required String value}) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF8B7FD8)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPartnerStatusBadge({required bool isLinked}) {
+    if (isLinked) {
+      return const CircleAvatar(
+        radius: 16,
+        backgroundColor: Color(0xFF1BAE5D),
+        child: Icon(Icons.check, size: 18, color: Colors.white),
+      );
+    }
+
+    return const CircleAvatar(
+      radius: 16,
+      backgroundColor: Color(0xFFE0E0E0),
+      child: Icon(Icons.close, size: 18, color: Colors.black54),
+    );
+  }
+
   Future<void> _saveProfile() async {
     setState(() => _loading = true);
     try {
       final uid = widget.user.uid;
       final name = _nameController.text.trim();
       final email = _emailController.text.trim();
-      final partnerName = _partnerNameController.text.trim();
-      final partnerEmail = _partnerEmailController.text.trim();
 
       if (email.isEmpty) {
         _showSnack('Email cannot be empty');
@@ -346,8 +433,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _db.collection('users').doc(uid).set({
         'name': name,
         'email': email,
-        'partnerName': partnerName,
-        'partnerEmail': partnerEmail,
       }, SetOptions(merge: true));
 
       await widget.user.updateDisplayName(name);
@@ -355,13 +440,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _savedName = name;
       _savedEmail = email;
       _editingProfile = false;
-
-      setState(() {
-        _partnerStatus =
-            partnerName.isNotEmpty
-                ? 'Linked with $partnerName'
-                : _partnerStatus;
-      });
 
       _showSnack('Profile updated');
     } catch (_) {
@@ -454,6 +532,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
       partnerEmail: partnerEmail,
       partnerUid: partnerUidInput.isEmpty ? null : partnerUidInput,
     );
+  }
+
+  Future<void> _confirmUnlinkPartner() async {
+    final shouldUnlink = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Unlink partner?'),
+            content: const Text(
+              'This will remove the partner connection from your account.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC62828),
+                ),
+                child: const Text(
+                  'Unlink',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (shouldUnlink != true) return;
+
+    try {
+      await _db.collection('users').doc(widget.user.uid).set({
+        'partnerUid': FieldValue.delete(),
+        'partnerName': FieldValue.delete(),
+        'partnerEmail': FieldValue.delete(),
+      }, SetOptions(merge: true));
+
+      if (mounted) {
+        setState(() {
+          _partnerUid = null;
+          _partnerDisplayName = '';
+        });
+      }
+
+      _showSnack('Partner unlinked');
+    } catch (_) {
+      _showSnack('Unable to unlink partner');
+    }
   }
 
   Future<void> _createLinkRequest({
