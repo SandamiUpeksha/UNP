@@ -495,7 +495,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextField(
                   controller: uidController,
                   decoration: const InputDecoration(
-                    labelText: 'Partner User ID (optional)',
+                    labelText: 'Partner User ID',
                   ),
                 ),
               ],
@@ -527,10 +527,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showSnack('Partner email is required');
       return;
     }
+    if (partnerUidInput.isEmpty) {
+      _showSnack('Partner user ID is required');
+      return;
+    }
 
     await _createLinkRequest(
       partnerEmail: partnerEmail,
-      partnerUid: partnerUidInput.isEmpty ? null : partnerUidInput,
+      partnerUid: partnerUidInput,
     );
   }
 
@@ -586,7 +590,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _createLinkRequest({
     required String partnerEmail,
-    String? partnerUid,
+    required String partnerUid,
   }) async {
     try {
       final fromUid = widget.user.uid;
@@ -596,18 +600,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? _nameController.text.trim()
               : (widget.user.displayName ?? 'Someone');
 
-      String? resolvedUid = partnerUid;
-      if (resolvedUid == null) {
-        final userQuery =
-            await _db
-                .collection('users')
-                .where('email', isEqualTo: partnerEmail)
-                .limit(1)
-                .get();
-        if (userQuery.docs.isNotEmpty) {
-          resolvedUid = userQuery.docs.first.id;
-        }
-      }
+      final resolvedUid = partnerUid;
 
       final requestRef = _db.collection('link_requests').doc();
       await requestRef.set({
